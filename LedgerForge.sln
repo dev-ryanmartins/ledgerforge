@@ -1,0 +1,45 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LedgerForge.Api", "src\LedgerForge.Api\LedgerForge.Api.csproj", "{E1A1F9B0-1A7A-4D9C-88EC-1F3A7BC7D7A1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LedgerForge.Domain", "src\LedgerForge.Domain\LedgerForge.Domain.csproj", "{A5B93D8A-8F7A-4E0B-A076-9A7B7E9E3D10}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LedgerForge.Application", "src\LedgerForge.Application\LedgerForge.Application.csproj", "{B7D45E5C-2B9F-4D9C-8D78-0C5C80BBE6FC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LedgerForge.Infrastructure", "src\LedgerForge.Infrastructure\LedgerForge.Infrastructure.csproj", "{CEB5A50D-39B6-4F95-98E0-1FD60F9C1F09}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LedgerForge.Tests", "tests\LedgerForge.Tests\LedgerForge.Tests.csproj", "{F4E5AA9B-0AA4-4FE5-8DE2-6A1D7B0DA6BB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E1A1F9B0-1A7A-4D9C-88EC-1F3A7BC7D7A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E1A1F9B0-1A7A-4D9C-88EC-1F3A7BC7D7A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E1A1F9B0-1A7A-4D9C-88EC-1F3A7BC7D7A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E1A1F9B0-1A7A-4D9C-88EC-1F3A7BC7D7A1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A5B93D8A-8F7A-4E0B-A076-9A7B7E9E3D10}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A5B93D8A-8F7A-4E0B-A076-9A7B7E9E3D10}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A5B93D8A-8F7A-4E0B-A076-9A7B7E9E3D10}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A5B93D8A-8F7A-4E0B-A076-9A7B7E9E3D10}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B7D45E5C-2B9F-4D9C-8D78-0C5C80BBE6FC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B7D45E5C-2B9F-4D9C-8D78-0C5C80BBE6FC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B7D45E5C-2B9F-4D9C-8D78-0C5C80BBE6FC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B7D45E5C-2B9F-4D9C-8D78-0C5C80BBE6FC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CEB5A50D-39B6-4F95-98E0-1FD60F9C1F09}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CEB5A50D-39B6-4F95-98E0-1FD60F9C1F09}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CEB5A50D-39B6-4F95-98E0-1FD60F9C1F09}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CEB5A50D-39B6-4F95-98E0-1FD60F9C1F09}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F4E5AA9B-0AA4-4FE5-8DE2-6A1D7B0DA6BB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F4E5AA9B-0AA4-4FE5-8DE2-6A1D7B0DA6BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F4E5AA9B-0AA4-4FE5-8DE2-6A1D7B0DA6BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F4E5AA9B-0AA4-4FE5-8DE2-6A1D7B0DA6BB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
