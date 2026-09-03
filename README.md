@@ -179,7 +179,7 @@ dotnet build LedgerForge.sln
 dotnet test LedgerForge.sln
 ```
 
-The CI workflow runs restore, release build, and the complete test suite on pushes and pull requests to `main`.
+The repository includes a portable CI definition at `docs/github-actions-ci.yml`. Copy it to `.github/workflows/ci.yml` when the target repository has the GitHub Actions workflow permission enabled; it runs restore, release build, and the complete test suite on pushes and pull requests to `main`.
 
 ## Production hardening checklist
 
