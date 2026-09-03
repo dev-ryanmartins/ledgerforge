@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>LedgerForge.Domain</RootNamespace>
+  </PropertyGroup>
+</Project>
