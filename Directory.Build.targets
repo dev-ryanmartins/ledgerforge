@@ -1,0 +1,5 @@
+<Project>
+  <Target Name="BuildBanner" BeforeTargets="Build">
+    <Message Importance="high" Text="LedgerForge | building $(MSBuildProjectName) for $(TargetFramework)" />
+  </Target>
+</Project>
