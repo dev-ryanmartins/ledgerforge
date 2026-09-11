@@ -173,6 +173,7 @@ MIT — use como referência, estenda o projeto e torne suas decisões técnicas
 
 <div align="center">
 
-**Projeto de portfólio por [Ryan Henri Martins](https://github.com/dev-ryanmartins)**
+**Projeto de portfólio por [Ryan Henri Martins](https://github.com/dev-ryanmartins)**  
+[LinkedIn](https://www.linkedin.com/in/ryan-martins-153341389/)
 
 </div>
