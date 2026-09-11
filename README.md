@@ -1,150 +1,130 @@
+<div align="center">
+
 # LedgerForge
 
-> An opinionated .NET 8 reference architecture for financial transaction workflows built with CQRS, Event Sourcing, optimistic concurrency, and asynchronous domain events.
+### Arquitetura de referência para fluxos financeiros com .NET 8
 
-LedgerForge is intentionally small enough to understand in one sitting and strict enough to demonstrate the engineering decisions expected in a production-grade financial system. The example domain is a bank account, but the same seams apply to orders, payments, inventory reservations, and other workflows where auditability and correctness matter more than CRUD convenience.
+[![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
+[![C#](https://img.shields.io/badge/C%23-Backend-239120?style=for-the-badge&logo=csharp&logoColor=white)](https://learn.microsoft.com/dotnet/csharp/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![RabbitMQ](https://img.shields.io/badge/RabbitMQ-Messaging-FF6600?style=for-the-badge&logo=rabbitmq&logoColor=white)](https://www.rabbitmq.com/)
 
-## Why this project exists
+**CQRS · Event Sourcing · Concorrência otimista · Transactional Outbox · Testes automatizados**
 
-The source of truth is an append-only event stream. The write side rebuilds an aggregate from its history, validates domain invariants, and appends new events using an expected stream version. The read side consumes those events into a purpose-built projection.
+[Como executar](#como-executar) · [Arquitetura](#arquitetura) · [Demonstração](#demonstração-da-api) · [Decisões técnicas](#decisões-técnicas)
 
-That gives the system:
+</div>
 
-- A complete business audit trail without overwriting facts.
-- Deterministic aggregate rehydration and replay.
-- Explicit protection against lost updates.
-- Independent evolution of command and query models.
-- A clean boundary for replacing the in-memory transport with RabbitMQ.
-- A transactional PostgreSQL event store and outbox schema for durable deployments.
+---
 
-## Architecture at a glance
+## Visão geral
+
+O **LedgerForge** é uma API backend que simula o fluxo de contas bancárias usando uma arquitetura orientada a eventos. O projeto foi criado para demonstrar como construir um sistema auditável e consistente quando a integridade das informações é mais importante do que a simplicidade de um CRUD.
+
+Em vez de sobrescrever o saldo atual, o sistema registra fatos imutáveis — como conta criada, depósito e saque — e reconstrói o estado a partir do histórico de eventos.
+
+> **O que este projeto demonstra:** domínio rico, separação entre comandos e consultas, proteção contra atualizações perdidas, persistência transacional, mensageria assíncrona e observabilidade estruturada.
+
+## Principais recursos
+
+- Criação de contas e operações de depósito e saque.
+- **Event Sourcing** com stream de eventos imutável.
+- **CQRS** separando o fluxo de escrita do modelo de leitura.
+- **Concorrência otimista** com retorno `409 Conflict` em versões conflitantes.
+- Projeção de leitura independente do agregado de domínio.
+- Event store e read model em memória para onboarding rápido.
+- Implementações duráveis com PostgreSQL.
+- Event bus local e adaptador RabbitMQ.
+- Transactional Outbox para manter evento e intenção de publicação na mesma transação.
+- Logs JSON com correlation ID, trace ID, rota, status e tempo de resposta.
+- Testes de domínio e do pipeline de comandos.
+- Swagger/OpenAPI para explorar os endpoints.
+
+## Arquitetura
 
 ```mermaid
 flowchart LR
-    Client --> API[ASP.NET Core API]
-    API --> Commands[Command handlers]
-    Commands --> Aggregate[BankAccount aggregate]
+    Client[Cliente HTTP] --> API[ASP.NET Core API]
+    API --> Commands[Command Handlers]
+    Commands --> Aggregate[BankAccount Aggregate]
     Aggregate --> Store[(Event Store)]
     Store --> Outbox[(Transactional Outbox)]
-    Store --> Bus[Async Event Bus]
-    Bus --> Projector[Read model projector]
+    Store --> Bus[Event Bus]
+    Bus --> Projector[Read Model Projector]
     Projector --> Projection[(Account Projection)]
-    API --> Queries[Query handlers]
+    API --> Queries[Query Handlers]
     Queries --> Projection
-    Bus -. optional .-> Rabbit[RabbitMQ]
+    Bus -. adaptador .-> Rabbit[RabbitMQ]
 ```
 
-### Write path
+### Fluxo de escrita
 
-1. The API creates a command containing the caller's expected stream version.
-2. The command handler loads the event history and rehydrates `BankAccount`.
-3. The aggregate enforces invariants such as currency consistency, positive amounts, and sufficient funds.
-4. The event store compares `expectedVersion` with the current version under a transaction.
-5. The new facts are appended atomically, and the event metadata keeps correlation and causation available for tracing.
-6. The bus publishes the committed envelopes.
+1. A API recebe um comando com o `expectedVersion` do stream.
+2. O handler carrega o histórico e reidrata o agregado `BankAccount`.
+3. O agregado valida as regras de negócio, como moeda, valor positivo e saldo suficiente.
+4. O event store verifica a versão dentro de uma transação.
+5. O novo evento é persistido atomicamente com sua intenção de publicação.
+6. O event bus encaminha o fato para atualizar o modelo de leitura.
 
-### Read path
+### Fluxo de leitura
 
-Queries never load or mutate the aggregate. They read from a projection optimized for the API's response shape. The default local bus projects synchronously after yielding to an asynchronous boundary; the RabbitMQ adapter is available for a separately operated consumer topology.
+As consultas não carregam nem alteram o agregado. Elas leem uma projeção criada especificamente para o formato de resposta da API. Esse isolamento permite evoluir o modelo de leitura sem comprometer as regras do domínio.
 
-## Project map
+## Organização do código
 
 ```text
 src/
-  LedgerForge.Domain/
-    Aggregates/         Business state, commands' invariants, event application
-    Events/             Domain events and event envelopes
-    Primitives/         Domain errors and result primitives
-  LedgerForge.Application/
-    Abstractions/       CQRS, event store, bus, read model ports
-    Commands/           Write-side contracts and handlers
-    Queries/            Read-side contracts and handlers
-    Contracts/          Transport-independent API models
-  LedgerForge.Infrastructure/
-    EventStore/         In-memory and PostgreSQL implementations
-    Messaging/          In-memory and RabbitMQ implementations
-    ReadModel/          In-memory and PostgreSQL projections
-    Clock/              Time abstraction
-  LedgerForge.Api/
-    Middleware/         Structured request logging and problem responses
-    Program.cs          HTTP composition root and endpoint mapping
-ops/
-  postgres/init/        Idempotent PostgreSQL schema for events, outbox, and projection
-tests/
-  LedgerForge.Tests/    Domain and command-pipeline tests
+├── LedgerForge.Domain/          # Agregados, eventos e regras de negócio
+├── LedgerForge.Application/     # Commands, queries e contratos
+├── LedgerForge.Infrastructure/  # PostgreSQL, RabbitMQ, projeções e clock
+└── LedgerForge.Api/             # Endpoints, middleware e composição
+
+ops/postgres/init/               # Schema de eventos, outbox e projeções
+tests/LedgerForge.Tests/         # Testes de domínio e pipeline
 ```
 
-## Patterns and decisions
+## Decisões técnicas
 
-### CQRS as a dependency boundary
+| Problema | Decisão | Benefício |
+|---|---|---|
+| Auditoria de alterações | Event Sourcing | Histórico completo e reprodutível |
+| Separação de leitura e escrita | CQRS | Contratos e responsabilidades mais claros |
+| Atualizações simultâneas | Concorrência otimista | Evita sobrescrever alterações concorrentes |
+| Entrega de eventos | Transactional Outbox | Persiste fato e intenção de publicação juntos |
+| Evolução da infraestrutura | Ports and adapters | Permite trocar implementações sem alterar o domínio |
+| Diagnóstico de requisições | Logs estruturados | Facilita rastreamento e investigação de falhas |
 
-Commands and queries are separate application contracts and handlers. Command handlers depend on `IEventStore` and `IEventBus`; query handlers depend on `IReadModel`. This is intentionally stricter than a single service class with `Create` and `Get` methods: the dependency graph communicates which side of the system a use case belongs to.
+## Como executar
 
-### Event Sourcing with an aggregate as the invariant boundary
+### Pré-requisitos
 
-The aggregate is not an anemic persistence model. It owns transitions and rejects invalid state changes before persistence. Rehydration only applies trusted historical events and never creates new uncommitted facts.
+- [.NET SDK 8](https://dotnet.microsoft.com/download/dotnet/8.0)
+- Docker e Docker Compose apenas para o perfil com PostgreSQL e RabbitMQ
 
-### Optimistic concurrency
-
-Every mutation requires `expectedVersion`. PostgreSQL serializes writers per stream with a transaction-scoped advisory lock and verifies the version before inserting. The composite `(stream_id, version)` primary key is a second line of defense. A mismatch returns HTTP `409 Conflict`, allowing a caller to reload and retry deliberately.
-
-### Transactional outbox
-
-The PostgreSQL schema persists the event and an outbox record in the same transaction. This is the durability seam for a production publisher: events are not acknowledged as committed unless the business fact and its delivery intent are both stored. The local profile uses an in-process bus to keep onboarding friction low.
-
-### Structured observability
-
-The API emits JSON logs with correlation id, trace id, method, route, status code, elapsed time, and exception details. Clients can supply `X-Correlation-Id`; otherwise ASP.NET's request trace id is used. Error responses expose a stable problem code while avoiding internal exception details for unexpected failures.
-
-### Explicit infrastructure choices
-
-There are no hidden service locators or static repositories. The composition root selects providers through configuration:
-
-| Concern | Local default | Durable option |
-| --- | --- | --- |
-| Event store | `InMemoryEventStore` | `PostgresEventStore` |
-| Read model | `InMemoryReadModel` | `PostgresReadModel` |
-| Event bus | `InMemoryEventBus` | `RabbitMqEventBus` |
-
-## Run locally
-
-### Requirements
-
-- .NET SDK 8
-- Docker and Docker Compose (only required for PostgreSQL/RabbitMQ mode)
-
-### Fast path: no external services
+### Execução rápida — sem serviços externos
 
 ```bash
 dotnet restore LedgerForge.sln
 dotnet run --project src/LedgerForge.Api
 ```
 
-The API starts with in-memory persistence and transport. Swagger is available at `http://localhost:5000/swagger` when using the standard development profile.
+A API inicia com persistência e transporte em memória. A documentação Swagger fica disponível em:
 
-### Full infrastructure profile
+**http://localhost:5000/swagger**
 
-Start the supporting services:
+### Perfil completo — PostgreSQL e RabbitMQ
 
 ```bash
 docker compose up -d
-```
 
-Run the API using the production provider selection:
-
-```bash
 ASPNETCORE_ENVIRONMENT=Production \
 ConnectionStrings__LedgerForge='Host=localhost;Port=5432;Database=ledgerforge;Username=ledgerforge;Password=ledgerforge' \
 dotnet run --project src/LedgerForge.Api
 ```
 
-The production configuration selects PostgreSQL and RabbitMQ. The schema is mounted into PostgreSQL's initialization directory and is safe to re-run in a fresh volume.
+## Demonstração da API
 
-> The RabbitMQ adapter is a transport boundary, not a claim that one process should own the entire distributed topology. In a real deployment, run the outbox publisher and projection consumers as independently scaled workers, with retry, dead-lettering, idempotency, and operational dashboards.
-
-## API walkthrough
-
-Create an account. `expectedVersion: 0` means the stream must not exist yet:
+Crie uma conta. O valor `expectedVersion: 0` indica que o stream ainda não existe:
 
 ```bash
 ACCOUNT_ID=$(uuidgen)
@@ -155,7 +135,7 @@ curl -i -X POST "http://localhost:5000/api/accounts/$ACCOUNT_ID" \
   -d '{"ownerId":"portfolio-user","currency":"BRL","expectedVersion":0}'
 ```
 
-Fund it using the version returned by the previous command:
+Faça um depósito usando a versão retornada pela criação:
 
 ```bash
 curl -i -X POST "http://localhost:5000/api/accounts/$ACCOUNT_ID/deposits" \
@@ -163,36 +143,36 @@ curl -i -X POST "http://localhost:5000/api/accounts/$ACCOUNT_ID/deposits" \
   -d '{"amount":250.00,"currency":"BRL","reference":"initial-funding","expectedVersion":1}'
 ```
 
-Read the projection and the immutable history:
+Consulte o saldo projetado e o histórico imutável:
 
 ```bash
 curl "http://localhost:5000/api/accounts/$ACCOUNT_ID"
 curl "http://localhost:5000/api/accounts/$ACCOUNT_ID/events"
 ```
 
-Try the same mutation twice with `expectedVersion: 1`. The second attempt returns `409 Conflict`, demonstrating lost-update protection.
+Ao repetir uma operação com uma versão antiga, a API retorna `409 Conflict`, demonstrando a proteção contra **lost updates**.
 
-## Quality gates
+## Qualidade e testes
 
 ```bash
 dotnet build LedgerForge.sln
 dotnet test LedgerForge.sln
 ```
 
-The repository includes a portable CI definition at `docs/github-actions-ci.yml`. Copy it to `.github/workflows/ci.yml` when the target repository has the GitHub Actions workflow permission enabled; it runs restore, release build, and the complete test suite on pushes and pull requests to `main`.
+O projeto inclui testes para regras do agregado e para o pipeline de comandos. Também há uma definição de CI portátil em [`docs/github-actions-ci.yml`](docs/github-actions-ci.yml).
 
-## Production hardening checklist
+## Limites conscientes do exemplo
 
-This repository focuses on architectural clarity, not pretending a sample is a complete regulated platform. Before production use, add:
+O LedgerForge prioriza clareza arquitetural e não pretende ser uma plataforma financeira pronta para produção. Para um ambiente real, ainda seriam necessários autenticação, autorização, isolamento de tenants, gestão de segredos, idempotência, retries, dead-letter queues, OpenTelemetry, políticas de retenção, reconciliação e controles específicos de compliance.
 
-- Outbox publisher with leasing, retry backoff, idempotency keys, and dead-letter queues.
-- Consumer-side checkpoints and projection rebuild tooling.
-- Authentication, authorization, rate limiting, and tenant isolation.
-- Database encryption, secret management, retention policies, and audit access controls.
-- OpenTelemetry traces/metrics, SLOs, alerting, and structured PII redaction.
-- Contract tests for message schemas and compatibility rules for event evolution.
-- Reconciliation jobs and operational tooling for payment provider callbacks.
+Essa explicitação de limites faz parte do projeto: uma arquitetura de referência deve deixar claro o que resolve e quais decisões ainda dependem do contexto operacional.
 
-## License
+## Licença
 
-MIT — use it as a reference, extend it, and make your own trade-offs explicit.
+MIT — use como referência, estenda o projeto e torne suas decisões técnicas explícitas.
+
+<div align="center">
+
+**Projeto de portfólio por [Ryan Henri Martins](https://github.com/dev-ryanmartins)**
+
+</div>
